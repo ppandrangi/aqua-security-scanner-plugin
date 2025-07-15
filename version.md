@@ -6,6 +6,33 @@ registries, for security vulnerabilities, using the API provided by
 
 ## Changelog:
 
+#### **Version 3.2.9 (July 16, 2025)**
+
+### Security Fixes
+- **SECURITY-3542 / CVE-2025-53653**: Fixed tokens stored in plain text vulnerability
+  - Local scanner tokens are now properly encrypted using Jenkins' Secret class
+  - Tokens are no longer stored in plain text in job config.xml files
+  - Added backward compatibility for existing configurations
+  - Users with Item/Extended Read permission can no longer view tokens in plain text
+
+### Dependency Security Updates
+- Updated `org.codehaus.plexus:plexus-utils` from 3.0.10 to 3.0.24 to fix:
+  - **CVE-2017-1000487** (CRITICAL): Fixed command injection vulnerability in Commandline class
+  - **CVE-2022-4244** (HIGH): Fixed directory traversal vulnerability
+  - **CVE-2022-4245** (MEDIUM): Fixed XML External Entity (XXE) injection vulnerability
+- Updated `org.jenkins-ci.plugins:structs` to version 1.24 for improved compatibility
+
+### Technical Changes
+- Changed `localToken` field from `String` to `Secret` type
+- Added `readResolve()` method for configuration migration
+- Updated token handling in `ScannerExecuter` class
+- Improved build process with containerized build support
+
+### Migration Notes
+- Existing configurations will be automatically migrated when jobs are loaded
+- No manual intervention required for existing installations
+- Tokens will be re-encrypted on first job configuration save
+
 #### **Version 3.2.8 (Apr 1, 2025)**
 
 The image scanning now includes two options for Aqua registry authentication to pull the scanner image:

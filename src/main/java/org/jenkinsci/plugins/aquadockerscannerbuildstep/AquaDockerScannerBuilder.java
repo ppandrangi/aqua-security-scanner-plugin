@@ -66,9 +66,7 @@ public class AquaDockerScannerBuilder extends Builder implements SimpleBuildStep
 	private String tarFilePath;
 
 	@CheckForNull
-	private String localToken;
-
-	private Secret localTokenSecret;
+	private Secret localToken;
 
 	// Fields in config.jelly must match the parameter names in the
 	// "DataBoundConstructor"
@@ -86,13 +84,25 @@ public class AquaDockerScannerBuilder extends Builder implements SimpleBuildStep
 		this.hideBase = hideBase;
 		this.showNegligible = showNegligible;
 		this.policies = policies;
-		this.localToken = localToken;
+		this.localToken = Secret.fromString(localToken);
 		this.customFlags = customFlags;
 		this.tarFilePath = tarFilePath;
 		this.containerRuntime = containerRuntime;
 		this.scannerPath = scannerPath;
-		this.localTokenSecret = hudson.util.Secret.fromString(localToken);
 		this.runtimeDirectory = Util.fixNull(runtimeDirectory);
+	}
+
+	/**
+	 * Backward compatibility for configurations created before the security fix.
+	 * This method is called when Jenkins deserializes the configuration from XML.
+	 */
+	protected Object readResolve() {
+		// If localToken is null, initialize it as empty Secret
+		// This handles migration from older versions
+		if (localToken == null) {
+			localToken = Secret.fromString("");
+		}
+		return this;
 	}
 
 	/**
@@ -143,7 +153,7 @@ public class AquaDockerScannerBuilder extends Builder implements SimpleBuildStep
 
 	@CheckForNull
 	public String getLocalToken() {
-		return localToken;
+		return Secret.toString(localToken);
 	}
 
 	public String getCustomFlags() {
@@ -202,7 +212,7 @@ public class AquaDockerScannerBuilder extends Builder implements SimpleBuildStep
 
 	@DataBoundSetter
 	public void setLocalToken(@CheckForNull String localToken) {
-		this.localToken = Util.fixNull(localToken);
+		this.localToken = Secret.fromString(Util.fixNull(localToken));
 	}
 
 	@DataBoundSetter
@@ -226,7 +236,7 @@ public class AquaDockerScannerBuilder extends Builder implements SimpleBuildStep
 
 		// If user and password is empty, check if token is provided as global or local value
 		if(("").equals(user) && Secret.toString(password).equals("") && 
-			Secret.toString(token).equals("") && Secret.toString(localTokenSecret).equals("")){
+			Secret.toString(token).equals("") && Secret.toString(localToken).equals("")){
 				throw new AbortException("Either Username/Password or Token should be provided in Global Settings, or"+
 				" valid token provided with in Token field in the build configuration");
 			
@@ -285,7 +295,7 @@ public class AquaDockerScannerBuilder extends Builder implements SimpleBuildStep
 		int exitCode = ScannerExecuter.execute(build, workspace,launcher, listener, artifactName, aquaScannerImage, apiURL, user,
 				password, token, timeout, runOptions, locationType, localImage, registry, register, hostedImage, hideBase,
 				showNegligible, onDisallowed == null || !onDisallowed.equals("fail"), notCompliesCmd, caCertificates,
-				policies, localTokenSecret, customFlags, tarFilePath, containerRuntime, scannerPath, runtimeDirectory);
+				policies, localToken, customFlags, tarFilePath, containerRuntime, scannerPath, runtimeDirectory);
 		build.addAction(new AquaScannerAction(build, artifactSuffix, artifactName, displayImageName));
 
 		archiveArtifacts(build, workspace, launcher, listener);
